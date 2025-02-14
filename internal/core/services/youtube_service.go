@@ -23,7 +23,7 @@ import (
 // YoutubePlaylistService define as operações para gerenciar playlists do YouTube.
 type YoutubePlaylistService interface {
 	GetAllPlaylists(ctx context.Context, token *oauth2.Token, r *http.Request) ([]entities.PlaylistInterface, error)
-	ReorderPlaylist(playlistId, criteria, userId string, ctx context.Context) error
+	ReorderPlaylist(playlistId, criteria, userId string) error
 	DeletePlaylist(playlistId string) error
 	GetPlaylistVideos(playlistId string) ([]entities.VideoInterface, error)
 	GetVideoDetails(videoId string) (entities.VideoInterface, error)
@@ -131,10 +131,10 @@ func (s *youtubePlaylistService) GetAllPlaylists(ctx context.Context, token *oau
 	return playlistsEntity, nil
 }
 
-func (s *youtubePlaylistService) ReorderPlaylist(playlistId, criteria, userId string, ctx context.Context) error {
+func (s *youtubePlaylistService) ReorderPlaylist(playlistId, criteria, userId string) error {
 	ytService := s.Youtube
 
-	playlist, err := s.GetPlaylistByID(ctx, ytService, playlistId)
+	playlist, err := s.GetPlaylistByID(ytService, playlistId)
 	if err != nil {
 		logging.Info("Error getting playlist")
 		return s.errorHandler.HandleYouTubeError(err, playlistId, "reorder_playlist")
@@ -147,13 +147,13 @@ func (s *youtubePlaylistService) ReorderPlaylist(playlistId, criteria, userId st
 		playlist.SortByPublishedAt()
 	case "byDuration":
 		playlist.SortByDuration()
+	case "byChannel":
+		playlist.SortByChannelId()
+	case "byLanguage":
+		playlist.SortByLanguage()
 	default:
 		return errors.New("invalid criteria")
 	}
-
-	fmt.Println("--------------------------")
-	fmt.Println("Reorder playlist:", playlist)
-	fmt.Println("--------------------------")
 
 	_, err = s.CreateNewPlaylist(playlist)
 	if err != nil {
@@ -201,23 +201,28 @@ func (s *youtubePlaylistService) GetPlaylistVideos(playlistId string) ([]entitie
 
 func (s *youtubePlaylistService) GetVideoDetails(videoId string) (entities.VideoInterface, error) {
 	call := s.Youtube.Videos.List([]string{"snippet", "contentDetails"}).Id(videoId)
+
 	response, err := call.Do()
 	if err != nil {
 		return nil, s.errorHandler.HandleYouTubeError(err, videoId, "get_video_details")
 	}
+
 	if len(response.Items) == 0 {
 		return nil, errors.New("video not found")
 	}
+
 	item := response.Items[0]
 	parsedDuration, err := duration.Parse(item.ContentDetails.Duration)
 	if err != nil {
 		return nil, err
 	}
+
 	publishedAt, err := time.Parse(time.RFC3339, item.Snippet.PublishedAt)
 	if err != nil {
 		return nil, err
 	}
-	video := entities.NewVideo(item.Id, item.Snippet.Title, item.Snippet.ChannelId, publishedAt, parsedDuration.ToTimeDuration())
+
+	video := entities.NewVideo(item.Id, item.Snippet.Title, item.Snippet.ChannelId, item.Snippet.DefaultAudioLanguage, publishedAt, parsedDuration.ToTimeDuration())
 	return video, nil
 }
 
@@ -284,8 +289,7 @@ func (s *youtubePlaylistService) addVideoToPlaylist(playlistId, videoId string) 
 	return nil
 }
 
-func (s *youtubePlaylistService) GetPlaylistByID(ctx context.Context, service *youtube.Service, playlistID string) (entities.PlaylistInterface, error) {
-	// Cria a chamada especificando os parts que deseja recuperar.
+func (s *youtubePlaylistService) GetPlaylistByID(service *youtube.Service, playlistID string) (entities.PlaylistInterface, error) {
 	call := service.Playlists.List([]string{"snippet", "status", "contentDetails"}).Id(playlistID)
 	response, err := call.Do()
 	if err != nil {
