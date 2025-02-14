@@ -5,7 +5,8 @@ import "time"
 type video struct {
 	id          string
 	title       string
-	artist      string
+	channelId   string
+	language    string
 	publishedAt time.Time
 	duration    time.Duration
 }
@@ -13,16 +14,18 @@ type video struct {
 type VideoInterface interface {
 	Id() string
 	Title() string
-	Artist() string
+	ChannelId() string
+	Language() string
 	PublishedAt() time.Time
 	Duration() time.Duration
 }
 
-func NewVideo(id, title, artist string, publishedAt time.Time, duration time.Duration) VideoInterface {
+func NewVideo(id, title, channelId, language string, publishedAt time.Time, duration time.Duration) VideoInterface {
 	return &video{
 		id:          id,
 		title:       title,
-		artist:      artist,
+		channelId:   channelId,
+		language:    language,
 		publishedAt: publishedAt,
 		duration:    duration,
 	}
@@ -36,8 +39,12 @@ func (v *video) Title() string {
 	return v.title
 }
 
-func (v *video) Artist() string {
-	return v.artist
+func (v *video) ChannelId() string {
+	return v.channelId
+}
+
+func (v *video) Language() string {
+	return v.language
 }
 
 func (v *video) PublishedAt() time.Time {
