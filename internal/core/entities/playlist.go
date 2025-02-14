@@ -24,6 +24,8 @@ type PlaylistInterface interface {
 	SortByPublishedAt()
 	SortByTitle()
 	SortByDuration()
+	SortByChannelId()
+	SortByLanguage()
 }
 
 func NewPlaylist(id, channelId, title, description string, publishedAt time.Time, videos []VideoInterface) PlaylistInterface {
@@ -75,6 +77,22 @@ func (p *playlist) SortByTitle() {
 
 func (p *playlist) SortByDuration() {
 	sort.Slice(p.videos, func(i, j int) bool {
-		return p.videos[i].PublishedAt().After(p.videos[j].PublishedAt())
+		return p.videos[i].Duration() < p.videos[j].Duration()
+	})
+}
+
+func (p *playlist) SortByChannelId() {
+	sort.Slice(p.videos, func(i, j int) bool {
+		if p.videos[i].ChannelId() == p.videos[j].ChannelId() {
+			return p.videos[i].Title() < p.videos[j].Title()
+		}
+
+		return p.videos[i].ChannelId() < p.videos[j].ChannelId()
+	})
+}
+
+func (p *playlist) SortByLanguage() {
+	sort.Slice(p.videos, func(i, j int) bool {
+		return p.videos[i].Language() < p.videos[j].Language()
 	})
 }
