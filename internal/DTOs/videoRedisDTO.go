@@ -8,7 +8,8 @@ import (
 type VideoRedisDTO struct {
 	Id          string        `json:"id"`
 	Title       string        `json:"title"`
-	Artist      string        `json:"artist"`
+	ChannelId   string        `json:"artist"`
+	Language    string        `json:"language"`
 	PublishedAt time.Time     `json:"published_at"`
 	Duration    time.Duration `json:"duration"`
 }
@@ -17,7 +18,8 @@ func (dto *VideoRedisDTO) ToEntity() entities.VideoInterface {
 	return entities.NewVideo(
 		dto.Id,
 		dto.Title,
-		dto.Artist,
+		dto.ChannelId,
+		dto.Language,
 		dto.PublishedAt,
 		dto.Duration,
 	)
@@ -27,7 +29,8 @@ func VideoFromEntity(entity entities.VideoInterface) VideoRedisDTO {
 	return VideoRedisDTO{
 		Id:          entity.Id(),
 		Title:       entity.Title(),
-		Artist:      entity.Artist(),
+		ChannelId:   entity.ChannelId(),
+		Language:    entity.Language(),
 		PublishedAt: entity.PublishedAt(),
 		Duration:    entity.Duration(),
 	}
